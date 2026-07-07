@@ -18,8 +18,21 @@ On first startup, if no admin exists in MongoDB, one is created from `ADMIN_EMAI
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start dev server with hot reload (port 5000) |
-| `npm run build` | Bundle for production |
-| `npm start` | Run production build |
+| `npm run build` | Compile TypeScript → `server.js` (root) |
+| `npm start` | Run `node server.js` |
+
+## Hostinger deployment
+
+| Setting | Value |
+|---------|-------|
+| **Entry file** | `server.js` |
+| **Build command** | `npm run build` |
+| **Start command** | `npm start` |
+| **Node version** | 18+ |
+
+`postinstall` runs the build automatically after `npm install`, so `server.js` is generated on deploy.
+
+Set environment variables in the Hostinger panel: `MONGODB_URI`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `JWT_SECRET`, `FRONTEND_URL`, `PORT`.
 
 ## Environment Variables
 
