@@ -1,11 +1,22 @@
 export const MIN_PHONE_DIGITS = 10;
+export const PHONE_CHAR_PATTERN = /^[\d+\-]*$/;
+
+export function sanitizePhoneInput(value: string): string {
+  return value.replace(/[^\d+\-]/g, '');
+}
 
 export function countPhoneDigits(phone: string): number {
   return phone.replace(/\D/g, '').length;
 }
 
+export function hasValidPhoneCharacters(phone: string): boolean {
+  return PHONE_CHAR_PATTERN.test(phone);
+}
+
 export function isValidPhone(phone: string): boolean {
-  return countPhoneDigits(phone) >= MIN_PHONE_DIGITS;
+  const trimmed = phone.trim();
+  if (!trimmed || !hasValidPhoneCharacters(trimmed)) return false;
+  return countPhoneDigits(trimmed) >= MIN_PHONE_DIGITS;
 }
 
 export function getMinPreferredDate(): string {

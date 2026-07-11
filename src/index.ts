@@ -54,7 +54,7 @@ app.post('/api/book-demo', async (req, res) => {
     }
     const cleanPhone = String(phone).trim();
     if (!isValidPhone(cleanPhone)) {
-      res.status(400).json({ error: 'Phone number must contain at least 10 digits' });
+      res.status(400).json({ error: 'Phone number must contain only digits, +, -, and at least 10 digits' });
       return;
     }
     const cleanDate = String(preferredDate).trim();
@@ -112,7 +112,7 @@ app.post('/api/webinar-registrations', async (req, res) => {
     }
     const cleanPhone = String(phone).trim();
     if (!isValidPhone(cleanPhone)) {
-      res.status(400).json({ error: 'Phone number must contain at least 10 digits' });
+      res.status(400).json({ error: 'Phone number must contain only digits, +, -, and at least 10 digits' });
       return;
     }
     const registration = await createWebinarRegistration({
