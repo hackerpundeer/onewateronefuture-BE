@@ -14,7 +14,11 @@ import {
   createLead,
   listLeads,
   updateLead,
+  createWebinarRegistration,
+  listWebinarRegistrations,
+  updateWebinarRegistration,
 } from './store.js';
+import { isValidPhone, isValidPreferredDate } from './validation.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -48,14 +52,24 @@ app.post('/api/book-demo', async (req, res) => {
       res.status(400).json({ error: 'Required fields missing' });
       return;
     }
+    const cleanPhone = String(phone).trim();
+    if (!isValidPhone(cleanPhone)) {
+      res.status(400).json({ error: 'Phone number must contain at least 10 digits' });
+      return;
+    }
+    const cleanDate = String(preferredDate).trim();
+    if (!isValidPreferredDate(cleanDate)) {
+      res.status(400).json({ error: 'Preferred date must be at least tomorrow' });
+      return;
+    }
     const booking = await createBooking({
-      fullName,
-      email,
-      phone,
+      fullName: String(fullName).trim(),
+      email: String(email).trim(),
+      phone: cleanPhone,
       country: country || '',
       demoType: demoType || 'zoom',
-      preferredDate,
-      preferredTime,
+      preferredDate: cleanDate,
+      preferredTime: String(preferredTime).trim(),
       message: message || '',
       status: 'New',
     });
@@ -85,6 +99,32 @@ app.post('/api/club-applications', async (req, res) => {
     res.status(201).json({ success: true, data: application });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to save application';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.post('/api/webinar-registrations', async (req, res) => {
+  try {
+    const { fullName, city, phone } = req.body;
+    if (!fullName || !city || !phone) {
+      res.status(400).json({ error: 'Name, city, and phone are required' });
+      return;
+    }
+    const cleanPhone = String(phone).trim();
+    if (!isValidPhone(cleanPhone)) {
+      res.status(400).json({ error: 'Phone number must contain at least 10 digits' });
+      return;
+    }
+    const registration = await createWebinarRegistration({
+      fullName: String(fullName).trim(),
+      city: String(city).trim(),
+      phone: cleanPhone,
+      status: 'New',
+      source: 'zoom_live_demo',
+    });
+    res.status(201).json({ success: true, data: registration });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to save webinar registration';
     res.status(500).json({ error: message });
   }
 });
@@ -208,6 +248,30 @@ app.patch('/api/leads/:id', adminAuth, async (req, res) => {
     res.json({ success: true, data: updated });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update lead';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.get('/api/webinar-registrations', adminAuth, async (_req, res) => {
+  try {
+    const registrations = await listWebinarRegistrations();
+    res.json(registrations);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch webinar registrations';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.patch('/api/webinar-registrations/:id', adminAuth, async (req, res) => {
+  try {
+    const updated = await updateWebinarRegistration(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ error: 'Webinar registration not found' });
+      return;
+    }
+    res.json({ success: true, data: updated });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update webinar registration';
     res.status(500).json({ error: message });
   }
 });

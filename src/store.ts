@@ -2,10 +2,12 @@ import { isMongoConnected, isMongoLive, markMongoDisconnected } from './db.js';
 import { Booking } from './models/Booking.js';
 import { ClubApplication } from './models/ClubApplication.js';
 import { Lead } from './models/Lead.js';
+import { WebinarRegistration } from './models/WebinarRegistration.js';
 
 const memoryBookings: Record<string, unknown>[] = [];
 const memoryApplications: Record<string, unknown>[] = [];
 const memoryLeads: Record<string, unknown>[] = [];
+const memoryWebinarRegistrations: Record<string, unknown>[] = [];
 
 let idCounter = 1;
 
@@ -150,6 +152,47 @@ export async function updateLead(id: string, data: Record<string, unknown>) {
       if (idx === -1) return null;
       memoryLeads[idx] = { ...memoryLeads[idx], ...data, updatedAt: new Date() };
       return memoryLeads[idx];
+    }
+  );
+}
+
+export async function createWebinarRegistration(data: Record<string, unknown>) {
+  return withMongo(
+    'createWebinarRegistration',
+    async () => {
+      const doc = new WebinarRegistration(data);
+      await doc.save();
+      return doc;
+    },
+    () => {
+      const doc = withId(data);
+      memoryWebinarRegistrations.unshift(doc);
+      return doc;
+    }
+  );
+}
+
+export async function listWebinarRegistrations() {
+  return withMongo(
+    'listWebinarRegistrations',
+    () => WebinarRegistration.find().sort({ createdAt: -1 }),
+    () => memoryWebinarRegistrations
+  );
+}
+
+export async function updateWebinarRegistration(id: string, data: Record<string, unknown>) {
+  return withMongo(
+    'updateWebinarRegistration',
+    () => WebinarRegistration.findByIdAndUpdate(id, data, { new: true }),
+    () => {
+      const idx = memoryWebinarRegistrations.findIndex((r) => r._id === id);
+      if (idx === -1) return null;
+      memoryWebinarRegistrations[idx] = {
+        ...memoryWebinarRegistrations[idx],
+        ...data,
+        updatedAt: new Date(),
+      };
+      return memoryWebinarRegistrations[idx];
     }
   );
 }
