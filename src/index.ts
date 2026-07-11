@@ -17,8 +17,14 @@ import {
   createWebinarRegistration,
   listWebinarRegistrations,
   updateWebinarRegistration,
+  getWebinarSettings,
+  updateWebinarSettings,
 } from './store.js';
-import { isValidPhone, isValidPreferredDate } from './validation.js';
+import {
+  isValidPhone,
+  isValidPreferredDate,
+  validateWebinarSettingsPayload,
+} from './validation.js';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -125,6 +131,16 @@ app.post('/api/webinar-registrations', async (req, res) => {
     res.status(201).json({ success: true, data: registration });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to save webinar registration';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.get('/api/webinar-settings', async (_req, res) => {
+  try {
+    const settings = await getWebinarSettings();
+    res.json(settings);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch webinar settings';
     res.status(500).json({ error: message });
   }
 });
@@ -272,6 +288,43 @@ app.patch('/api/webinar-registrations/:id', adminAuth, async (req, res) => {
     res.json({ success: true, data: updated });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update webinar registration';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.put('/api/webinar-settings', adminAuth, async (req, res) => {
+  try {
+    const validationError = validateWebinarSettingsPayload(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+
+    const {
+      zoomUrl,
+      dailyStartTime,
+      timezone,
+      liveDurationMinutes,
+      unlockMinutesBefore,
+      scheduleLabel,
+      meetingObjective,
+      isEnabled,
+    } = req.body;
+
+    const updated = await updateWebinarSettings({
+      zoomUrl: String(zoomUrl).trim(),
+      dailyStartTime: String(dailyStartTime).trim(),
+      timezone: timezone ? String(timezone).trim() : 'Asia/Kolkata',
+      liveDurationMinutes: Number(liveDurationMinutes),
+      unlockMinutesBefore: Number(unlockMinutesBefore),
+      scheduleLabel: scheduleLabel ? String(scheduleLabel).trim() : 'Daily: 8:00 PM IST',
+      meetingObjective: meetingObjective ? String(meetingObjective).trim() : '',
+      isEnabled: isEnabled !== false,
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update webinar settings';
     res.status(500).json({ error: message });
   }
 });

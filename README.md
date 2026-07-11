@@ -53,6 +53,7 @@ Set environment variables in the Hostinger panel: `MONGODB_URI`, `ADMIN_EMAIL`, 
 - `POST /api/book-demo` — create demo booking
 - `POST /api/club-applications` — create club application
 - `POST /api/webinar-registrations` — create live webinar RSVP
+- `GET /api/webinar-settings` — live demo schedule and Zoom link
 - `POST /api/admin/login` — admin login (returns JWT)
 
 **Admin (Bearer JWT required):**
@@ -61,3 +62,4 @@ Set environment variables in the Hostinger panel: `MONGODB_URI`, `ADMIN_EMAIL`, 
 - `GET/PATCH /api/club-applications` — manage applications
 - `GET/POST/PATCH /api/leads` — manage CRM leads
 - `GET/PATCH /api/webinar-registrations` — manage webinar RSVPs
+- `PUT /api/webinar-settings` — update live demo schedule and Zoom link

@@ -3,11 +3,33 @@ import { Booking } from './models/Booking.js';
 import { ClubApplication } from './models/ClubApplication.js';
 import { Lead } from './models/Lead.js';
 import { WebinarRegistration } from './models/WebinarRegistration.js';
+import { WebinarSettings } from './models/WebinarSettings.js';
 
 const memoryBookings: Record<string, unknown>[] = [];
 const memoryApplications: Record<string, unknown>[] = [];
 const memoryLeads: Record<string, unknown>[] = [];
 const memoryWebinarRegistrations: Record<string, unknown>[] = [];
+
+export const DEFAULT_WEBINAR_SETTINGS = {
+  slug: 'live-demo',
+  zoomUrl:
+    'https://us06web.zoom.us/j/88000074852?pwd=IcsNbGCDaZMqQls3mqc1IVY6lsB5Jw.1',
+  dailyStartTime: '20:00',
+  timezone: 'Asia/Kolkata',
+  liveDurationMinutes: 45,
+  unlockMinutesBefore: 30,
+  scheduleLabel: 'Daily: 8:00 PM IST',
+  meetingObjective:
+    'We demonstrate the Enagic machine in real-time, explaining pH testing, negative ORP antioxidant properties, pesticide micro-clustering, and the detailed 8-Point commission model.',
+  isEnabled: true,
+};
+
+let memoryWebinarSettings: Record<string, unknown> = {
+  _id: 'live-demo',
+  ...DEFAULT_WEBINAR_SETTINGS,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
 
 let idCounter = 1;
 
@@ -193,6 +215,41 @@ export async function updateWebinarRegistration(id: string, data: Record<string,
         updatedAt: new Date(),
       };
       return memoryWebinarRegistrations[idx];
+    }
+  );
+}
+
+export async function getWebinarSettings() {
+  return withMongo(
+    'getWebinarSettings',
+    async () => {
+      let doc = await WebinarSettings.findOne({ slug: 'live-demo' });
+      if (!doc) {
+        doc = await WebinarSettings.create(DEFAULT_WEBINAR_SETTINGS);
+      }
+      return doc;
+    },
+    () => memoryWebinarSettings
+  );
+}
+
+export async function updateWebinarSettings(data: Record<string, unknown>) {
+  return withMongo(
+    'updateWebinarSettings',
+    () =>
+      WebinarSettings.findOneAndUpdate(
+        { slug: 'live-demo' },
+        { ...data, slug: 'live-demo' },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ),
+    () => {
+      memoryWebinarSettings = {
+        ...memoryWebinarSettings,
+        ...data,
+        slug: 'live-demo',
+        updatedAt: new Date(),
+      };
+      return memoryWebinarSettings;
     }
   );
 }
