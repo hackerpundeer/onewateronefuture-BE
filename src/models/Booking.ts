@@ -11,6 +11,8 @@ const BookingSchema = new mongoose.Schema(
     preferredTime: { type: String, default: '' },
     message: { type: String, default: '' },
     status: { type: String, default: 'New' },
+    isDeleted: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

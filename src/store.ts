@@ -4,6 +4,7 @@ import { ClubApplication } from './models/ClubApplication.js';
 import { Lead } from './models/Lead.js';
 import { WebinarRegistration } from './models/WebinarRegistration.js';
 import { WebinarSettings } from './models/WebinarSettings.js';
+import type { BookingListFilters } from './validation.js';
 
 const memoryBookings: Record<string, unknown>[] = [];
 const memoryApplications: Record<string, unknown>[] = [];
@@ -83,22 +84,82 @@ export async function createBooking(data: Record<string, unknown>) {
   );
 }
 
-export async function listBookings() {
+function buildBookingQuery(filters: BookingListFilters = { isDeleted: false }) {
+  const isDeleted = filters.isDeleted ?? false;
+  const query: Record<string, unknown> = isDeleted
+    ? { isDeleted: true }
+    : { $or: [{ isDeleted: false }, { isDeleted: { $exists: false } }] };
+  if (filters.status) query.status = filters.status;
+  if (filters.from || filters.to) {
+    const preferredDate: Record<string, string> = {};
+    if (filters.from) preferredDate.$gte = filters.from;
+    if (filters.to) preferredDate.$lte = filters.to;
+    query.preferredDate = preferredDate;
+  }
+  return query;
+}
+
+function filterMemoryBookings(filters: BookingListFilters = { isDeleted: false }) {
+  const isDeleted = filters.isDeleted ?? false;
+  return memoryBookings.filter((booking) => {
+    if (Boolean(booking.isDeleted) !== isDeleted) return false;
+    if (filters.status && booking.status !== filters.status) return false;
+    const preferredDate = String(booking.preferredDate || '');
+    if (filters.from && preferredDate < filters.from) return false;
+    if (filters.to && preferredDate > filters.to) return false;
+    return true;
+  });
+}
+
+export async function listBookings(filters: BookingListFilters = { isDeleted: false }) {
+  const query = buildBookingQuery(filters);
   return withMongo(
     'listBookings',
-    () => Booking.find().sort({ createdAt: -1 }),
-    () => memoryBookings
+    () => Booking.find(query).sort({ createdAt: -1 }),
+    () => filterMemoryBookings(filters)
   );
 }
 
+function stripBookingDeleteFields(data: Record<string, unknown>) {
+  const { isDeleted: _isDeleted, deletedAt: _deletedAt, ...safe } = data;
+  return safe;
+}
+
 export async function updateBooking(id: string, data: Record<string, unknown>) {
+  const safeData = stripBookingDeleteFields(data);
   return withMongo(
     'updateBooking',
-    () => Booking.findByIdAndUpdate(id, data, { new: true }),
+    () => Booking.findByIdAndUpdate(id, safeData, { new: true }),
     () => {
       const idx = memoryBookings.findIndex((b) => b._id === id);
       if (idx === -1) return null;
-      memoryBookings[idx] = { ...memoryBookings[idx], ...data, updatedAt: new Date() };
+      memoryBookings[idx] = { ...memoryBookings[idx], ...safeData, updatedAt: new Date() };
+      return memoryBookings[idx];
+    }
+  );
+}
+
+export async function softDeleteBooking(id: string) {
+  return withMongo(
+    'softDeleteBooking',
+    async () => {
+      const existing = await Booking.findById(id);
+      if (!existing || existing.isDeleted) return null;
+      return Booking.findByIdAndUpdate(
+        id,
+        { isDeleted: true, deletedAt: new Date() },
+        { new: true }
+      );
+    },
+    () => {
+      const idx = memoryBookings.findIndex((b) => b._id === id);
+      if (idx === -1 || memoryBookings[idx].isDeleted) return null;
+      memoryBookings[idx] = {
+        ...memoryBookings[idx],
+        isDeleted: true,
+        deletedAt: new Date(),
+        updatedAt: new Date(),
+      };
       return memoryBookings[idx];
     }
   );

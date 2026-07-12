@@ -29,6 +29,54 @@ export function isValidPreferredDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= getMinPreferredDate();
 }
 
+const DATE_QUERY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+
+export function isValidDateQuery(date: string): boolean {
+  return DATE_QUERY_PATTERN.test(date);
+}
+
+export type BookingListFilters = {
+  isDeleted: boolean;
+  status?: string;
+  from?: string;
+  to?: string;
+};
+
+export function parseBookingListQuery(query: Record<string, unknown>): {
+  filters: BookingListFilters;
+  error: string | null;
+} {
+  const isDeletedRaw = query.isDeleted;
+  let isDeleted = false;
+  if (isDeletedRaw !== undefined && isDeletedRaw !== '') {
+    if (isDeletedRaw === 'true') {
+      isDeleted = true;
+    } else if (isDeletedRaw === 'false') {
+      isDeleted = false;
+    } else {
+      return { filters: { isDeleted: false }, error: 'isDeleted must be true or false' };
+    }
+  }
+
+  const status =
+    typeof query.status === 'string' && query.status.trim() ? query.status.trim() : undefined;
+
+  const from = typeof query.from === 'string' && query.from.trim() ? query.from.trim() : undefined;
+  const to = typeof query.to === 'string' && query.to.trim() ? query.to.trim() : undefined;
+
+  if (from && !isValidDateQuery(from)) {
+    return { filters: { isDeleted }, error: 'from must be a valid YYYY-MM-DD date' };
+  }
+  if (to && !isValidDateQuery(to)) {
+    return { filters: { isDeleted }, error: 'to must be a valid YYYY-MM-DD date' };
+  }
+  if (from && to && from > to) {
+    return { filters: { isDeleted }, error: 'from must be on or before to' };
+  }
+
+  return { filters: { isDeleted, status, from, to }, error: null };
+}
+
 const TIME_HHMM_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 const ZOOM_URL_PATTERN = /^https:\/\/([\w-]+\.)?zoom\.us\//i;
 

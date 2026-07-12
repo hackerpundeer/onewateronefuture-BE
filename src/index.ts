@@ -8,6 +8,7 @@ import {
   createBooking,
   listBookings,
   updateBooking,
+  softDeleteBooking,
   createClubApplication,
   listClubApplications,
   updateClubApplication,
@@ -24,6 +25,7 @@ import {
   isValidPhone,
   isValidPreferredDate,
   validateWebinarSettingsPayload,
+  parseBookingListQuery,
 } from './validation.js';
 
 const app = express();
@@ -174,12 +176,31 @@ app.get('/api/admin/me', adminAuth, (req, res) => {
 
 // --- Admin routes ---
 
-app.get('/api/book-demo', adminAuth, async (_req, res) => {
+app.get('/api/book-demo', adminAuth, async (req, res) => {
   try {
-    const bookings = await listBookings();
+    const { filters, error } = parseBookingListQuery(req.query as Record<string, unknown>);
+    if (error) {
+      res.status(400).json({ error });
+      return;
+    }
+    const bookings = await listBookings(filters);
     res.json(bookings);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch bookings';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.delete('/api/book-demo/:id', adminAuth, async (req, res) => {
+  try {
+    const deleted = await softDeleteBooking(req.params.id);
+    if (!deleted) {
+      res.status(404).json({ error: 'Booking not found' });
+      return;
+    }
+    res.json({ success: true, data: deleted });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to delete booking';
     res.status(500).json({ error: message });
   }
 });
