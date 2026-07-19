@@ -15,6 +15,9 @@ import {
   createLead,
   listLeads,
   updateLead,
+  createServiceRequest,
+  listServiceRequests,
+  updateServiceRequest,
   createWebinarRegistration,
   listWebinarRegistrations,
   updateWebinarRegistration,
@@ -136,6 +139,35 @@ app.post('/api/webinar-registrations', async (req, res) => {
     res.status(201).json({ success: true, data: registration });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to save webinar registration';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.post('/api/service-requests', async (req, res) => {
+  try {
+    const { fullName, address, phone, serviceType } = req.body;
+    if (!fullName || !address || !phone || !serviceType) {
+      res.status(400).json({ error: 'Name, address, mobile number, and service type are required' });
+      return;
+    }
+
+    const cleanPhone = String(phone).trim();
+    if (!isValidPhone(cleanPhone)) {
+      res.status(400).json({ error: 'Mobile number must contain only digits, +, -, and at least 10 digits' });
+      return;
+    }
+
+    const serviceRequest = await createServiceRequest({
+      fullName: String(fullName).trim(),
+      address: String(address).trim(),
+      phone: cleanPhone,
+      serviceType: String(serviceType).trim(),
+      status: 'New',
+    });
+
+    res.status(201).json({ success: true, data: serviceRequest });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to save service request';
     res.status(500).json({ error: message });
   }
 });
@@ -298,6 +330,30 @@ app.patch('/api/leads/:id', adminAuth, async (req, res) => {
     res.json({ success: true, data: updated });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update lead';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.get('/api/service-requests', adminAuth, async (_req, res) => {
+  try {
+    const requests = await listServiceRequests();
+    res.json(requests);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch service requests';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.patch('/api/service-requests/:id', adminAuth, async (req, res) => {
+  try {
+    const updated = await updateServiceRequest(req.params.id, req.body);
+    if (!updated) {
+      res.status(404).json({ error: 'Service request not found' });
+      return;
+    }
+    res.json({ success: true, data: updated });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update service request';
     res.status(500).json({ error: message });
   }
 });

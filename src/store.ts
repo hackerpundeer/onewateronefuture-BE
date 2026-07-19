@@ -2,6 +2,7 @@ import { isMongoConnected, isMongoLive, markMongoDisconnected } from './db.js';
 import { Booking } from './models/Booking.js';
 import { ClubApplication } from './models/ClubApplication.js';
 import { Lead } from './models/Lead.js';
+import { ServiceRequest } from './models/ServiceRequest.js';
 import { WebinarRegistration } from './models/WebinarRegistration.js';
 import { WebinarSettings } from './models/WebinarSettings.js';
 import { SocialSettings } from './models/SocialSettings.js';
@@ -10,6 +11,7 @@ import type { BookingListFilters } from './validation.js';
 const memoryBookings: Record<string, unknown>[] = [];
 const memoryApplications: Record<string, unknown>[] = [];
 const memoryLeads: Record<string, unknown>[] = [];
+const memoryServiceRequests: Record<string, unknown>[] = [];
 const memoryWebinarRegistrations: Record<string, unknown>[] = [];
 
 export const DEFAULT_WEBINAR_SETTINGS = {
@@ -251,6 +253,47 @@ export async function updateLead(id: string, data: Record<string, unknown>) {
       if (idx === -1) return null;
       memoryLeads[idx] = { ...memoryLeads[idx], ...data, updatedAt: new Date() };
       return memoryLeads[idx];
+    }
+  );
+}
+
+export async function createServiceRequest(data: Record<string, unknown>) {
+  return withMongo(
+    'createServiceRequest',
+    async () => {
+      const doc = new ServiceRequest(data);
+      await doc.save();
+      return doc;
+    },
+    () => {
+      const doc = withId(data);
+      memoryServiceRequests.unshift(doc);
+      return doc;
+    }
+  );
+}
+
+export async function listServiceRequests() {
+  return withMongo(
+    'listServiceRequests',
+    () => ServiceRequest.find().sort({ createdAt: -1 }),
+    () => memoryServiceRequests
+  );
+}
+
+export async function updateServiceRequest(id: string, data: Record<string, unknown>) {
+  return withMongo(
+    'updateServiceRequest',
+    () => ServiceRequest.findByIdAndUpdate(id, data, { new: true }),
+    () => {
+      const idx = memoryServiceRequests.findIndex((request) => request._id === id);
+      if (idx === -1) return null;
+      memoryServiceRequests[idx] = {
+        ...memoryServiceRequests[idx],
+        ...data,
+        updatedAt: new Date(),
+      };
+      return memoryServiceRequests[idx];
     }
   );
 }
