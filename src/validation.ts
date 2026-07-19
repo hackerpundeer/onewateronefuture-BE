@@ -96,6 +96,33 @@ export function isValidUnlockMinutesBefore(minutes: number): boolean {
   return Number.isFinite(minutes) && minutes >= 5 && minutes <= 120;
 }
 
+const HTTP_URL_PATTERN = /^https?:\/\/.+/i;
+
+export function isValidHttpUrl(url: string): boolean {
+  return HTTP_URL_PATTERN.test(url.trim());
+}
+
+export function validateSocialSettingsPayload(body: Record<string, unknown>): string | null {
+  const showFacebook = body.showFacebook === true;
+  const showInstagram = body.showInstagram === true;
+  const facebookUrl = typeof body.facebookUrl === 'string' ? body.facebookUrl.trim() : '';
+  const instagramUrl = typeof body.instagramUrl === 'string' ? body.instagramUrl.trim() : '';
+
+  if (showFacebook && !facebookUrl) {
+    return 'Facebook URL is required when Facebook is enabled';
+  }
+  if (showFacebook && facebookUrl && !isValidHttpUrl(facebookUrl)) {
+    return 'Facebook URL must be a valid http(s) URL';
+  }
+  if (showInstagram && !instagramUrl) {
+    return 'Instagram URL is required when Instagram is enabled';
+  }
+  if (showInstagram && instagramUrl && !isValidHttpUrl(instagramUrl)) {
+    return 'Instagram URL must be a valid http(s) URL';
+  }
+  return null;
+}
+
 export function validateWebinarSettingsPayload(body: Record<string, unknown>): string | null {
   const { zoomUrl, dailyStartTime, liveDurationMinutes, unlockMinutesBefore } = body;
 

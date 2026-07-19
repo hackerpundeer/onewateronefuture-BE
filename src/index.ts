@@ -20,11 +20,14 @@ import {
   updateWebinarRegistration,
   getWebinarSettings,
   updateWebinarSettings,
+  getSocialSettings,
+  updateSocialSettings,
 } from './store.js';
 import {
   isValidPhone,
   isValidPreferredDate,
   validateWebinarSettingsPayload,
+  validateSocialSettingsPayload,
   parseBookingListQuery,
 } from './validation.js';
 
@@ -143,6 +146,16 @@ app.get('/api/webinar-settings', async (_req, res) => {
     res.json(settings);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to fetch webinar settings';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.get('/api/social-settings', async (_req, res) => {
+  try {
+    const settings = await getSocialSettings();
+    res.json(settings);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to fetch social settings';
     res.status(500).json({ error: message });
   }
 });
@@ -346,6 +359,30 @@ app.put('/api/webinar-settings', adminAuth, async (req, res) => {
     res.json({ success: true, data: updated });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Failed to update webinar settings';
+    res.status(500).json({ error: message });
+  }
+});
+
+app.put('/api/social-settings', adminAuth, async (req, res) => {
+  try {
+    const validationError = validateSocialSettingsPayload(req.body);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+
+    const { facebookUrl, instagramUrl, showFacebook, showInstagram } = req.body;
+
+    const updated = await updateSocialSettings({
+      facebookUrl: facebookUrl ? String(facebookUrl).trim() : '',
+      instagramUrl: instagramUrl ? String(instagramUrl).trim() : '',
+      showFacebook: showFacebook === true,
+      showInstagram: showInstagram === true,
+    });
+
+    res.json({ success: true, data: updated });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to update social settings';
     res.status(500).json({ error: message });
   }
 });

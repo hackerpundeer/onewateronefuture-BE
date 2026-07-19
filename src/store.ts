@@ -4,6 +4,7 @@ import { ClubApplication } from './models/ClubApplication.js';
 import { Lead } from './models/Lead.js';
 import { WebinarRegistration } from './models/WebinarRegistration.js';
 import { WebinarSettings } from './models/WebinarSettings.js';
+import { SocialSettings } from './models/SocialSettings.js';
 import type { BookingListFilters } from './validation.js';
 
 const memoryBookings: Record<string, unknown>[] = [];
@@ -28,6 +29,21 @@ export const DEFAULT_WEBINAR_SETTINGS = {
 let memoryWebinarSettings: Record<string, unknown> = {
   _id: 'live-demo',
   ...DEFAULT_WEBINAR_SETTINGS,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+};
+
+export const DEFAULT_SOCIAL_SETTINGS = {
+  slug: 'distributor-social',
+  facebookUrl: '',
+  instagramUrl: '',
+  showFacebook: false,
+  showInstagram: false,
+};
+
+let memorySocialSettings: Record<string, unknown> = {
+  _id: 'distributor-social',
+  ...DEFAULT_SOCIAL_SETTINGS,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -311,6 +327,41 @@ export async function updateWebinarSettings(data: Record<string, unknown>) {
         updatedAt: new Date(),
       };
       return memoryWebinarSettings;
+    }
+  );
+}
+
+export async function getSocialSettings() {
+  return withMongo(
+    'getSocialSettings',
+    async () => {
+      let doc = await SocialSettings.findOne({ slug: 'distributor-social' });
+      if (!doc) {
+        doc = await SocialSettings.create(DEFAULT_SOCIAL_SETTINGS);
+      }
+      return doc;
+    },
+    () => memorySocialSettings
+  );
+}
+
+export async function updateSocialSettings(data: Record<string, unknown>) {
+  return withMongo(
+    'updateSocialSettings',
+    () =>
+      SocialSettings.findOneAndUpdate(
+        { slug: 'distributor-social' },
+        { ...data, slug: 'distributor-social' },
+        { new: true, upsert: true, setDefaultsOnInsert: true }
+      ),
+    () => {
+      memorySocialSettings = {
+        ...memorySocialSettings,
+        ...data,
+        slug: 'distributor-social',
+        updatedAt: new Date(),
+      };
+      return memorySocialSettings;
     }
   );
 }
