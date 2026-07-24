@@ -9,6 +9,9 @@ const ClubApplicationSchema = new mongoose.Schema(
     sponsorName: { type: String, default: '' },
     interestType: { type: String, default: 'both' },
     status: { type: String, default: 'Pending' },
+    websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', required: false },
+    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: false },
+    schemaVersion: { type: Number, default: 1 },
   },
   { timestamps: true }
 );

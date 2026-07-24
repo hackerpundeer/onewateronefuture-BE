@@ -13,6 +13,11 @@ const BookingSchema = new mongoose.Schema(
     status: { type: String, default: 'New' },
     isDeleted: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null },
+    websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', required: false },
+    intent: { type: String, default: 'demo' },
+    sourceForm: { type: String, default: 'book-demo' },
+    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: false },
+    schemaVersion: { type: Number, default: 1 },
   },
   { timestamps: true }
 );

@@ -7,6 +7,9 @@ const WebinarRegistrationSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     status: { type: String, default: 'New' },
     source: { type: String, default: 'zoom_live_demo' },
+    websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', required: false },
+    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: false },
+    schemaVersion: { type: Number, default: 1 },
   },
   { timestamps: true }
 );

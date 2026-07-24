@@ -7,6 +7,9 @@ const ServiceRequestSchema = new mongoose.Schema(
     phone: { type: String, required: true },
     serviceType: { type: String, required: true },
     status: { type: String, default: 'New' },
+    websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', required: false },
+    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: false },
+    schemaVersion: { type: Number, default: 1 },
   },
   { timestamps: true }
 );
