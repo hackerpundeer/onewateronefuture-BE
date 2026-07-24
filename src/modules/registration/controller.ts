@@ -14,8 +14,13 @@ export const registrationController = {
 
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await registrationService.list(String(req.website!._id));
-      res.json(successResponse(data, { requestId: req.requestId }));
+      const result = await registrationService.list(
+        String(req.website!._id),
+        req.query as Record<string, unknown>
+      );
+      res.json(
+        successResponse(result.items, { requestId: req.requestId, ...result.pagination })
+      );
     } catch (err) {
       next(err);
     }

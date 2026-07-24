@@ -1,7 +1,22 @@
 import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { registrationRepository } from './repository.js';
 import { validateRegistrationCreate } from './validators.js';
+
+export const REGISTRATION_PATCH_FIELDS = [
+  'fullName',
+  'city',
+  'phone',
+  'status',
+  'source',
+] as const;
 
 export const registrationService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -24,8 +39,13 @@ export const registrationService = {
     });
   },
 
-  async list(websiteId: string) {
-    return registrationRepository.list(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await registrationRepository.list(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 
   async getById(websiteId: string, id: string) {
@@ -35,7 +55,8 @@ export const registrationService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await registrationRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, REGISTRATION_PATCH_FIELDS);
+    const doc = await registrationRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Registration not found');
     return doc;
   },

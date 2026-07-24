@@ -1,4 +1,10 @@
 import { ValidationError } from '../../shared/errors/index.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { donationRepository } from './repository.js';
 
@@ -27,7 +33,12 @@ export const donationService = {
     });
   },
 
-  async list(websiteId: string) {
-    return donationRepository.list(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await donationRepository.list(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 };

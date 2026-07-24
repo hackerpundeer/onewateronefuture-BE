@@ -5,8 +5,13 @@ import { contactService } from './service.js';
 export const contactController = {
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const contacts = await contactService.list(String(req.website!._id));
-      res.json(successResponse(contacts, { requestId: req.requestId }));
+      const result = await contactService.list(
+        String(req.website!._id),
+        req.query as Record<string, unknown>
+      );
+      res.json(
+        successResponse(result.items, { requestId: req.requestId, ...result.pagination })
+      );
     } catch (err) {
       next(err);
     }

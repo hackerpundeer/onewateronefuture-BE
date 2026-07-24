@@ -1,6 +1,22 @@
 import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { inquiryRepository } from './repository.js';
+
+export const INQUIRY_PATCH_FIELDS = [
+  'name',
+  'email',
+  'phone',
+  'model',
+  'date',
+  'status',
+] as const;
 
 export const inquiryService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -24,8 +40,13 @@ export const inquiryService = {
     });
   },
 
-  async list(websiteId: string) {
-    return inquiryRepository.list(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await inquiryRepository.list(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 
   async getById(websiteId: string, id: string) {
@@ -35,7 +56,8 @@ export const inquiryService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await inquiryRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, INQUIRY_PATCH_FIELDS);
+    const doc = await inquiryRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Inquiry not found');
     return doc;
   },

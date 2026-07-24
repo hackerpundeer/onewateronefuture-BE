@@ -1,7 +1,22 @@
 import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { serviceRequestRepository } from './repository.js';
 import { validateServiceRequestCreate } from './validators.js';
+
+export const SERVICE_REQUEST_PATCH_FIELDS = [
+  'fullName',
+  'address',
+  'phone',
+  'serviceType',
+  'status',
+] as const;
 
 export const serviceRequestService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -24,8 +39,13 @@ export const serviceRequestService = {
     });
   },
 
-  async list(websiteId: string) {
-    return serviceRequestRepository.list(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await serviceRequestRepository.list(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 
   async getById(websiteId: string, id: string) {
@@ -35,7 +55,8 @@ export const serviceRequestService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await serviceRequestRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, SERVICE_REQUEST_PATCH_FIELDS);
+    const doc = await serviceRequestRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Service request not found');
     return doc;
   },

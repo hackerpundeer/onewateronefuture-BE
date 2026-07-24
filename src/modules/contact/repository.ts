@@ -1,5 +1,6 @@
 import { isMongoLive } from '../../db.js';
 import { Contact } from './model.js';
+import type { PaginatedResult, PaginationParams } from '../../shared/http/pagination.js';
 
 const memoryContacts: Array<Record<string, unknown>> = [];
 let memoryId = 1;
@@ -10,6 +11,14 @@ function normalizeEmail(email?: string) {
 
 function normalizePhone(phone?: string) {
   return phone?.trim() || '';
+}
+
+function sortByCreatedAtDesc(items: Array<Record<string, unknown>>) {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(String(a.createdAt || 0)).getTime();
+    const bTime = new Date(String(b.createdAt || 0)).getTime();
+    return bTime - aTime;
+  });
 }
 
 export const contactRepository = {
@@ -25,12 +34,29 @@ export const contactRepository = {
     return Contact.findOne({ _id: id, websiteId });
   },
 
-  async listByWebsite(websiteId: string) {
+  async listByWebsite(
+    websiteId: string,
+    pagination: PaginationParams
+  ): Promise<PaginatedResult<unknown>> {
     const live = await isMongoLive();
     if (!live) {
-      return memoryContacts.filter((c) => String(c.websiteId) === String(websiteId));
+      const filtered = sortByCreatedAtDesc(
+        memoryContacts.filter((c) => String(c.websiteId) === String(websiteId))
+      );
+      return {
+        items: filtered.slice(pagination.skip, pagination.skip + pagination.limit),
+        total: filtered.length,
+      };
     }
-    return Contact.find({ websiteId }).sort({ createdAt: -1 });
+
+    const [items, total] = await Promise.all([
+      Contact.find({ websiteId })
+        .sort({ createdAt: -1 })
+        .skip(pagination.skip)
+        .limit(pagination.limit),
+      Contact.countDocuments({ websiteId }),
+    ]);
+    return { items, total };
   },
 
   async findByEmail(websiteId: string, email: string) {

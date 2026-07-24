@@ -1,4 +1,10 @@
 import { NotFoundError } from '../../shared/errors/index.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { contactRepository } from './repository.js';
 import type { FindOrCreateContactInput } from './types.js';
 
@@ -38,8 +44,13 @@ export async function findOrCreateContact(input: FindOrCreateContactInput) {
 }
 
 export const contactService = {
-  async list(websiteId: string) {
-    return contactRepository.listByWebsite(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await contactRepository.listByWebsite(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 
   async getById(websiteId: string, id: string) {

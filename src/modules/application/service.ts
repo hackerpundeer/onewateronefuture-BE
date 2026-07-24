@@ -1,6 +1,23 @@
 import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { applicationRepository } from './repository.js';
+
+export const APPLICATION_PATCH_FIELDS = [
+  'fullName',
+  'email',
+  'phone',
+  'country',
+  'sponsorName',
+  'interestType',
+  'status',
+] as const;
 
 export const applicationService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -27,8 +44,13 @@ export const applicationService = {
     });
   },
 
-  async list(websiteId: string) {
-    return applicationRepository.list(websiteId);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown> = {}
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const pagination = parsePagination(query);
+    const result = await applicationRepository.list(websiteId, pagination);
+    return { ...result, pagination: buildPaginationMeta(pagination, result.total) };
   },
 
   async getById(websiteId: string, id: string) {
@@ -38,7 +60,8 @@ export const applicationService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await applicationRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, APPLICATION_PATCH_FIELDS);
+    const doc = await applicationRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Application not found');
     return doc;
   },

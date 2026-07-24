@@ -13,8 +13,13 @@ export const inquiryController = {
   },
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await inquiryService.list(String(req.website!._id));
-      res.json(successResponse(data, { requestId: req.requestId }));
+      const result = await inquiryService.list(
+        String(req.website!._id),
+        req.query as Record<string, unknown>
+      );
+      res.json(
+        successResponse(result.items, { requestId: req.requestId, ...result.pagination })
+      );
     } catch (err) {
       next(err);
     }
@@ -29,7 +34,11 @@ export const inquiryController = {
   },
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await inquiryService.update(String(req.website!._id), req.params.id, req.body);
+      const data = await inquiryService.update(
+        String(req.website!._id),
+        req.params.id,
+        req.body
+      );
       res.json(successResponse(data, { requestId: req.requestId }));
     } catch (err) {
       next(err);

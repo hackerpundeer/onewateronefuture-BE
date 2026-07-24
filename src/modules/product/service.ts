@@ -1,5 +1,15 @@
 import { NotFoundError } from '../../shared/errors/index.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
 import { productRepository } from './repository.js';
+
+export const PRODUCT_PATCH_FIELDS = [
+  'name',
+  'slug',
+  'description',
+  'price',
+  'currency',
+  'isActive',
+] as const;
 
 export const productService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -17,7 +27,8 @@ export const productService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await productRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, PRODUCT_PATCH_FIELDS);
+    const doc = await productRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Product not found');
     return doc;
   },

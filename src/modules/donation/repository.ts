@@ -1,6 +1,7 @@
 import { withPlatformFields } from '../../shared/entities/platform-entity.js';
 import { mergeWebsiteScope, matchesWebsiteScope } from '../../shared/db/websiteScope.js';
 import { withMongoFallback } from '../../shared/db/mongoFallback.js';
+import type { PaginatedResult, PaginationParams } from '../../shared/http/pagination.js';
 import { Donation } from './model.js';
 
 const memory: Array<Record<string, unknown>> = [];
@@ -8,6 +9,14 @@ let memoryId = 1;
 
 function nextId() {
   return String(memoryId++);
+}
+
+function sortByCreatedAtDesc(items: Array<Record<string, unknown>>) {
+  return [...items].sort((a, b) => {
+    const aTime = new Date(String(a.createdAt || 0)).getTime();
+    const bTime = new Date(String(b.createdAt || 0)).getTime();
+    return bTime - aTime;
+  });
 }
 
 export const donationRepository = {
@@ -29,11 +38,32 @@ export const donationRepository = {
     );
   },
 
-  async list(websiteId: string) {
+  async list(
+    websiteId: string,
+    pagination: PaginationParams
+  ): Promise<PaginatedResult<unknown>> {
+    const scope = mergeWebsiteScope(websiteId);
     return withMongoFallback(
       'listDonations',
-      () => Donation.find(mergeWebsiteScope(websiteId)).sort({ createdAt: -1 }),
-      () => memory.filter((d) => matchesWebsiteScope(d, websiteId))
+      async () => {
+        const [items, total] = await Promise.all([
+          Donation.find(scope)
+            .sort({ createdAt: -1 })
+            .skip(pagination.skip)
+            .limit(pagination.limit),
+          Donation.countDocuments(scope),
+        ]);
+        return { items, total };
+      },
+      () => {
+        const filtered = sortByCreatedAtDesc(
+          memory.filter((d) => matchesWebsiteScope(d, websiteId))
+        );
+        return {
+          items: filtered.slice(pagination.skip, pagination.skip + pagination.limit),
+          total: filtered.length,
+        };
+      }
     );
   },
 };

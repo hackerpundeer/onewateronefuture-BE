@@ -15,11 +15,16 @@ export const appointmentController = {
 
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const appointments = await appointmentService.list(
+      const result = await appointmentService.list(
         String(req.website!._id),
         req.query as Record<string, unknown>
       );
-      res.json(successResponse(appointments, { requestId: req.requestId }));
+      res.json(
+        successResponse(result.items, {
+          requestId: req.requestId,
+          ...result.pagination,
+        })
+      );
     } catch (err) {
       next(err);
     }

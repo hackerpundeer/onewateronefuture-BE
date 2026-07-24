@@ -14,8 +14,13 @@ export const serviceRequestController = {
 
   async list(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await serviceRequestService.list(String(req.website!._id));
-      res.json(successResponse(data, { requestId: req.requestId }));
+      const result = await serviceRequestService.list(
+        String(req.website!._id),
+        req.query as Record<string, unknown>
+      );
+      res.json(
+        successResponse(result.items, { requestId: req.requestId, ...result.pagination })
+      );
     } catch (err) {
       next(err);
     }

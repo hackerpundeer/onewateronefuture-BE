@@ -1,7 +1,29 @@
 import { NotFoundError, ValidationError } from '../../shared/errors/index.js';
+import { parseBookingListQuery } from '../../legacy/validation.js';
+import { pickAllowedFields } from '../../shared/http/allowlist.js';
+import {
+  buildPaginationMeta,
+  parsePagination,
+  type PaginatedResult,
+  type PaginationMeta,
+} from '../../shared/http/pagination.js';
 import { findOrCreateContact } from '../contact/service.js';
 import { appointmentRepository } from './repository.js';
 import { validateAppointmentCreate } from './validators.js';
+
+export const APPOINTMENT_PATCH_FIELDS = [
+  'fullName',
+  'email',
+  'phone',
+  'country',
+  'demoType',
+  'preferredDate',
+  'preferredTime',
+  'message',
+  'status',
+  'intent',
+  'sourceForm',
+] as const;
 
 export const appointmentService = {
   async create(websiteId: string, body: Record<string, unknown>) {
@@ -31,8 +53,19 @@ export const appointmentService = {
     });
   },
 
-  async list(websiteId: string, query: Record<string, unknown>) {
-    return appointmentRepository.list(websiteId, query);
+  async list(
+    websiteId: string,
+    query: Record<string, unknown>
+  ): Promise<PaginatedResult<unknown> & { pagination: PaginationMeta }> {
+    const { filters, error } = parseBookingListQuery(query);
+    if (error) throw new ValidationError(error);
+
+    const pagination = parsePagination(query);
+    const result = await appointmentRepository.list(websiteId, filters, pagination);
+    return {
+      ...result,
+      pagination: buildPaginationMeta(pagination, result.total),
+    };
   },
 
   async getById(websiteId: string, id: string) {
@@ -42,7 +75,8 @@ export const appointmentService = {
   },
 
   async update(websiteId: string, id: string, body: Record<string, unknown>) {
-    const doc = await appointmentRepository.update(websiteId, id, body);
+    const safe = pickAllowedFields(body, APPOINTMENT_PATCH_FIELDS);
+    const doc = await appointmentRepository.update(websiteId, id, safe);
     if (!doc) throw new NotFoundError('Appointment not found');
     return doc;
   },
