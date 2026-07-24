@@ -8,6 +8,9 @@ const LeadSchema = new mongoose.Schema(
     model: { type: String, default: 'LeveLuk K8' },
     date: { type: String, default: '' },
     status: { type: String, default: 'New' },
+    websiteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Website', required: false },
+    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: false },
+    schemaVersion: { type: Number, default: 1 },
   },
   { timestamps: true }
 );
